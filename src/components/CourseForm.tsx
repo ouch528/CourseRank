@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronDown } from 'lucide-react';
 import { courseClassMap, programmeCategories, type ProgrammeCategory, type CourseData } from '../data/courses';
 
 interface CourseFormProps {
@@ -12,37 +12,37 @@ export function CourseForm({ onAdd, courseData }: CourseFormProps) {
   const [classCode, setClassCode] = useState('');
   const [category, setCategory] = useState<ProgrammeCategory>(programmeCategories[0]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const availableClassCodes = courseClassMap[courseCode] || [];
+  const allCourseCodes = Object.keys(courseClassMap);
+
+  const filteredCourses = searchTerm
+    ? allCourseCodes.filter(code => code.includes(searchTerm.toUpperCase()))
+    : allCourseCodes;
 
   useEffect(() => {
     setClassCode('');
   }, [courseCode]);
 
-  const handleCourseCodeChange = (value: string) => {
-    const upperValue = value.toUpperCase();
-    setCourseCode(upperValue);
-    
-    if (upperValue) {
-      const matches = Object.keys(courseClassMap).filter(code => 
-        code.startsWith(upperValue)
-      );
-      setSuggestions(matches);
-      setShowSuggestions(true);
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-  };
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setCourseCode(suggestion);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleCourseSelect = (selectedCode: string) => {
+    setCourseCode(selectedCode);
     setShowSuggestions(false);
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    setSearchTerm('');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -56,59 +56,67 @@ export function CourseForm({ onAdd, courseData }: CourseFormProps) {
       // Reset form
       setCourseCode('');
       setClassCode('');
+      setSearchTerm('');
       setCategory(programmeCategories[0]);
     }
   };
 
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
-        setShowSuggestions(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
-        <div className="relative">
+        <div ref={dropdownRef} className="relative">
           <label htmlFor="courseCode" className="block text-sm font-medium text-gray-700">
             Course Code
           </label>
-          <input
-            ref={inputRef}
-            id="courseCode"
-            type="text"
-            value={courseCode}
-            onChange={(e) => handleCourseCodeChange(e.target.value)}
-            onFocus={() => courseCode && setSuggestions(Object.keys(courseClassMap).filter(code => 
-              code.startsWith(courseCode)
-            ))}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            placeholder="Enter course code (e.g., CS1010)"
-            required
-          />
-          {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg max-h-60 overflow-auto">
-              <ul className="py-1">
-                {suggestions.map((suggestion) => (
-                  <li
-                    key={suggestion}
-                    className="px-4 py-2 hover:bg-indigo-50 cursor-pointer text-sm"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    {suggestion}
-                  </li>
-                ))}
-              </ul>
+          <div className="relative mt-1">
+            <div
+              className="relative w-full cursor-pointer"
+              onClick={() => setShowSuggestions(true)}
+            >
+              <input
+                type="text"
+                id="courseCode"
+                className="block w-full rounded-md border-gray-300 pr-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm cursor-pointer"
+                placeholder="Select or search for a course"
+                value={showSuggestions ? searchTerm : courseCode}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
+                required
+              />
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                <ChevronDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
+              </div>
             </div>
-          )}
+
+            {showSuggestions && (
+              <div className="absolute z-10 mt-1 w-full rounded-md bg-white py-1 shadow-lg ring-1 ring-black ring-opacity-5 max-h-60 overflow-auto">
+                {filteredCourses.length === 0 ? (
+                  <div className="px-4 py-2 text-sm text-gray-500">
+                    No courses found
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-gray-100">
+                    {filteredCourses.map((code) => (
+                      <li
+                        key={code}
+                        className={`flex cursor-pointer select-none items-center px-4 py-2 text-sm hover:bg-indigo-50 ${
+                          code === courseCode ? 'bg-indigo-50' : ''
+                        }`}
+                        onClick={() => handleCourseSelect(code)}
+                      >
+                        <span className="flex-grow font-medium">{code}</span>
+                        {courseClassMap[code] && (
+                          <span className="ml-2 text-xs text-gray-500">
+                            {courseClassMap[code].length} class{courseClassMap[code].length !== 1 ? 'es' : ''}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div>

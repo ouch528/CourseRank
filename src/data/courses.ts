@@ -1,3 +1,5 @@
+import { parse } from 'papaparse';
+
 export interface CourseData {
   courseCode: string;
   courseClass: string;
@@ -50,4 +52,50 @@ export const programmeCategories = [
 
 export type ProgrammeCategory = typeof programmeCategories[number];
 
-export const courseData: CourseData[] = [];
+const processCSVData = (data: any[]): CourseData[] => {
+  return data.map(row => ({
+    courseCode: row.course_code,
+    courseClass: row.course_class,
+    rd0_TF: row.Rd0_TF === 'true',
+    rd0_rate: row.Rd0_rate === 'inf' ? Infinity : Number(row.Rd0_rate),
+    rd1_TF: row.Rd1_TF === 'true',
+    rd1_rate: row.Rd1_rate === 'inf' ? Infinity : Number(row.Rd1_rate),
+    rd2_TF: row.Rd2_TF === 'true',
+    rd2_rate: row.Rd2_rate === 'inf' ? Infinity : Number(row.Rd2_rate),
+    rd3_TF: row.Rd3_TF === 'true',
+    rd3_rate: row.Rd3_rate === 'inf' ? Infinity : Number(row.Rd3_rate)
+  }));
+};
+
+// Load and parse the CSV file
+export const loadCourseData = async (): Promise<CourseData[]> => {
+  try {
+    const response = await fetch('/main.csv');
+    const csvText = await response.text();
+    
+    return new Promise((resolve, reject) => {
+      parse(csvText, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const processedData = processCSVData(results.data);
+          updateCourseClassMap(processedData);
+          resolve(processedData);
+        },
+        error: (error) => {
+          reject(error);
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error loading CSV:', error);
+    return [];
+  }
+};
+
+export let courseData: CourseData[] = [];
+
+// Initialize course data
+loadCourseData().then(data => {
+  courseData = data;
+});
