@@ -1,5 +1,7 @@
 # CourseRank
 
+![alt text](Mainpage.png)
+
 ## Inspiration
 EVERY NUS student has to undergo multiple rounds of course bidding to get their desired courses. Being unable to secure the desired courses only adds to the stress of the students, and students are not able to study the courses they desire. 
 
