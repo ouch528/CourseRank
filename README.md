@@ -22,7 +22,7 @@ The logic that we used is that among the courses that the student wishes to take
 Below is how our logic flows:
 
 ![alt text](Flowchart.jpeg)
-![alt text](Flowchart 2.png)
+![alt text](Flowchart2.png)
 
 ## Challenges we ran into
 Currently, our approach is to prioritise the core modules, which is a safer option for students. In the case that the student wants to prioritise their second major and minor courses, our algorithm is unable to serve that yet. 
